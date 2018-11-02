@@ -2,10 +2,57 @@
 <html>
   <head>
     <title><%= title %></title>
+    <link rel='stylesheet' href='/stylesheets/normalize.css' />
     <link rel='stylesheet' href='/stylesheets/style.css' />
   </head>
   <body>
-    <h1><%= title %></h1>
-    <p>Welcome to <%= title %></p>
+    <main id="app">
+      <section class="sidebar">
+        <ul>
+          <li v-for="note in notes">
+            <button @click="selectNote(note.id)">{{ note.title }}</button>
+            <button @click="saveNote(note.id)">Save</button>
+          </li>
+        </ul>
+      </section>
+      <display-note v-if="activeNote !== undefined" :note="notes[activeNote]"></display-note>
+    </main>
+    <script src="https://cdn.jsdelivr.net/npm/vue/dist/vue.js"></script>
+    <script src="https://unpkg.com/axios/dist/axios.min.js"></script>
+    <script src="./javascripts/markdown.min.js"></script>
+    <script>
+      Vue.component('display-note', {
+        props: ['note'],
+        computed: {
+          rendered() {
+            return markdown.toHTML(this.note.data);
+          }
+        },
+        template: '<section class="content"><textarea class="note-input" v-model="note.data">{{ note.data }}</textarea><div v-html="rendered"></div></section>',
+      })
+      var app = new Vue({
+        el: '#app',
+        beforeCreate() {
+          axios.get('/notes').then(data => {
+            this.notes = data.data
+            this.activeNote = 0;
+          })
+        },
+        data: {
+          activeNote: undefined,
+          notes: []
+        },
+        methods: {
+          saveNote(id) {
+            const elementPos = this.notes.map(x => x.id).indexOf(id);
+            axios.patch(`/notes/${id}`, this.notes[elementPos])
+          },
+          selectNote(id) {
+            const elementPos = this.notes.map(x => x.id).indexOf(id);
+            this.activeNote = elementPos;
+          }
+        }
+      });
+    </script>
   </body>
 </html>
